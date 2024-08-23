@@ -2,18 +2,12 @@ package main
 
 import (
 	"log"
-	"sync"
 	"os"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 )
 
-var (
-	userVideos    = make(map[int64]*tgbotapi.Video)
-	userQualities = make(map[int64]string)
-	mu            sync.RWMutex
-)
 
 func main() {
 
