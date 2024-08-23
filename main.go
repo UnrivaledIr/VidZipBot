@@ -3,12 +3,10 @@ package main
 import (
 	"log"
 	"sync"
+	"os"
 
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-)
-
-const (
-	token = "BOT_TOEK_HERE" // Replace with your actual bot token
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -18,6 +16,17 @@ var (
 )
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	token := os.Getenv("TOKEN")
+	if token == "" {
+		log.Fatal("TOKEN is not set in .env file")
+	}
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		log.Fatal(err)
@@ -35,7 +44,7 @@ func main() {
 		if update.Message != nil && update.Message.Video != nil {
 			handleVideo(bot, update)
 		} else if update.CallbackQuery != nil {
-			handleCallbackQuery(bot, update)
+			handleCallbackQuery(bot, update, token)
 		}
 	}
 }

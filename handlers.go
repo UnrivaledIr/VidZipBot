@@ -52,7 +52,7 @@ func handleVideo(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 }
 
-func handleCallbackQuery(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func handleCallbackQuery(bot *tgbotapi.BotAPI, update tgbotapi.Update, token string) {
 	quality := update.CallbackQuery.Data
 
 	mu.Lock()
@@ -67,10 +67,10 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		return
 	}
 
-	convertVideo(bot, update.CallbackQuery.Message.Chat.ID, sentMsg.MessageID)
+	convertVideo(bot, update.CallbackQuery.Message.Chat.ID, sentMsg.MessageID, token)
 }
 
-func convertVideo(bot *tgbotapi.BotAPI, chatID int64, progressMsgID int) {
+func convertVideo(bot *tgbotapi.BotAPI, chatID int64, progressMsgID int, token string) {
 	mu.RLock()
 	video := userVideos[chatID]
 	quality := userQualities[chatID]
@@ -153,9 +153,13 @@ func convertVideo(bot *tgbotapi.BotAPI, chatID int64, progressMsgID int) {
 	// Calculate compression ratio
 	compressionRatio := int((1 - float64(compressedSize)/float64(originalSize)) * 100)
 
+	// Retrieve BOT_USERNAME and BOT_CHANNEL from environment variables
+	botUsername := os.Getenv("BOT_USERNAME")
+	botChannel := os.Getenv("BOT_CHANNEL")
+
 	// Create caption
-	caption := fmt.Sprintf("Original video size: %.2f MB\nCompressed video size: %.2f MB\nCompression ratio: %d%%",
-		float64(originalSize)/1024/1024, float64(compressedSize)/1024/1024, compressionRatio)
+	caption := fmt.Sprintf("Original video size: %.2f MB\nCompressed video size: %.2f MB\nCompression ratio: %d%%\n\nBot: %s\nChannel: %s",
+		float64(originalSize)/1024/1024, float64(compressedSize)/1024/1024, compressionRatio, botUsername, botChannel)
 
 	videoMessage := tgbotapi.NewVideoUpload(chatID, outputFileName)
 	videoMessage.Caption = caption
