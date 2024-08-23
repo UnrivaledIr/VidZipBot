@@ -2,20 +2,21 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"math/big"
 	"os"
 	"os/exec"
 	"regexp"
 	"sync"
-	"time"
 )
 
 var (
 	userVideos    = make(map[int64]*tgbotapi.Video)
 	userQualities = make(map[int64]string)
-	userProgress  = make(map[int64]int)  // Track the progress
+	userProgress  = make(map[int64]int) // Track the progress
 	mu            sync.RWMutex
 )
 
@@ -100,6 +101,15 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, update tgbotapi.Update, token str
 	go convertVideo(bot, update.CallbackQuery.Message.Chat.ID, token)
 }
 
+func generateRandomStr(length int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	ret := make([]byte, length)
+	for i := range ret {
+		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+		ret[i] = letters[num.Int64()]
+	}
+	return string(ret)
+}
 
 func convertVideo(bot *tgbotapi.BotAPI, chatID int64, token string) {
 	mu.RLock()
@@ -113,7 +123,11 @@ func convertVideo(bot *tgbotapi.BotAPI, chatID int64, token string) {
 		return
 	}
 
-	outputFileName := fmt.Sprintf("output_%d_%d.mp4", chatID, time.Now().UnixNano())
+	// Retrieve BOT_USERNAME and BOT_CHANNEL from environment variables
+	botUsername := os.Getenv("BOT_USERNAME")
+	botChannel := os.Getenv("BOT_CHANNEL")
+	randomStr := generateRandomStr(8)
+	outputFileName := fmt.Sprintf("%s_%s.mp4", botUsername, randomStr)
 
 	var crf string
 	switch quality {
@@ -188,10 +202,6 @@ func convertVideo(bot *tgbotapi.BotAPI, chatID int64, token string) {
 
 	// Calculate compression ratio
 	compressionRatio := int((1 - float64(compressedSize)/float64(originalSize)) * 100)
-
-	// Retrieve BOT_USERNAME and BOT_CHANNEL from environment variables
-	botUsername := os.Getenv("BOT_USERNAME")
-	botChannel := os.Getenv("BOT_CHANNEL")
 
 	// Create caption
 	caption := fmt.Sprintf("Original video size: %.2f MB\nCompressed video size: %.2f MB\nCompression ratio: %d%%\n\nBot: %s\nChannel: %s",
